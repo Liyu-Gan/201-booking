@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>CD/CPL设备预约系统</title>
+    <style>
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{background:#f8f9fa;padding:20px;font-family:微软雅黑}
+        .container{max-width:1000px;margin:0 auto}
+        .card{background:white;border-radius:12px;padding:20px;margin-bottom:20px;box-shadow:0 2px 5px #00000010}
+        .btn{padding:12px;background:#0d6efd;color:white;border:none;border-radius:8px;cursor:pointer;width:100%;margin-top:10px;font-size:16px}
+        .device-btn{padding:15px 30px;background:#198754;color:white;border:none;border-radius:10px;cursor:pointer;margin:10px;font-size:18px}
+        .active{background:#0d6efd}
+        input{padding:10px;border:1px solid #ccc;border-radius:8px;width:100%;margin:5px 0;font-size:14px}
+        .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0}
+        .time-bar{height:60px;background:#198754;border-radius:8px;position:relative;overflow:hidden;margin:15px 0}
+        .book-block{position:absolute;height:100%;background:#dc3545;color:white;font-size:13px;display:flex;align-items:center;padding:0 10px;white-space:nowrap}
+        .item{padding:12px;background:#f1f3f5;border-left:5px solid #dc3545;margin:8px 0;border-radius:6px}
+        .stat-item{padding:12px;background:#e3f2fd;border-left:5px solid #0d6efd;margin:8px 0;border-radius:6px}
+        .title{text-align:center;margin:15px 0}
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2 class="title">CD / CPL 设备预约系统</h2>
+
+    <div style="text-align:center;margin-bottom:20px">
+        <button class="device-btn" id="btnCD" onclick="switchDevice('CD')">CD 设备</button>
+        <button class="device-btn" id="btnCPL" onclick="switchDevice('CPL')">CPL 设备</button>
+    </div>
+
+    <div class="card">
+        <input type="date" id="selDate" onchange="refreshAll()">
+        <div class="grid">
+            <input type="number" id="h1" placeholder="时" value="9">
+            <input type="number" id="m1" placeholder="分" value="0">
+            <input type="number" id="s1" placeholder="秒" value="0">
+        </div>
+        <div class="grid">
+            <input type="number" id="h2" placeholder="时" value="10">
+            <input type="number" id="m2" placeholder="分" value="0">
+            <input type="number" id="s2" placeholder="秒" value="0">
+        </div>
+        <input type="text" id="userName" placeholder="请输入预约人姓名">
+        <button class="btn" onclick="submitBook()">✅ 确认预约</button>
+    </div>
+
+    <div class="card">
+        <h4>📊 预约时间状态条（红=已预约）</h4>
+        <div id="timeBar" class="time-bar"></div>
+    </div>
+
+    <div class="card">
+        <h4>📋 当天预约记录（日期+时间段+姓名+时长）</h4>
+        <div id="recordList"></div>
+    </div>
+
+    <div class="card">
+        <h4>📈 全周期统计（总预约时长 + 总合计）</h4>
+        <div id="statResult"></div>
+    </div>
+</div>
+
+<script>
+// 全局数据（CD + CPL 分开）
+let bookingData = { CD: {}, CPL: {} };
+let currentDevice = "";
+const today = new Date().toISOString().split("T")[0];
+
+// 切换设备 CD / CPL
+function switchDevice(dev) {
+    currentDevice = dev;
+    document.getElementById("btnCD").classList.remove("active");
+    document.getElementById("btnCPL").classList.remove("active");
+    document.getElementById("btn"+dev).classList.add("active");
+    document.getElementById("selDate").value = today;
+    refreshAll();
+}
+
+// 格式化数字
+function fmt(n) { return n.toString().padStart(2, "0"); }
+
+// 时间字符串
+function timeStr(h, m, s) { return fmt(h) + ":" + fmt(m) + ":" + fmt(s); }
+
+// 转秒数
+function toSec(h, m, s) { return h*3600 + m*60 + s; }
+
+// 秒数转时分秒
+function secToHMS(sec) {
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    return fmt(h) + ":" + fmt(m) + ":" + fmt(s);
+}
+
+// 提交预约
+function submitBook() {
+    if (!currentDevice) { alert("请先选择 CD 或 CPL 设备！"); return; }
+    const dt = document.getElementById("selDate").value;
+    const h1 = +document.getElementById("h1").value || 0;
+    const m1 = +document.getElementById("m1").value || 0;
+    const s1 = +document.getElementById("s1").value || 0;
+    const h2 = +document.getElementById("h2").value || 0;
+    const m2 = +document.getElementById("m2").value || 0;
+    const s2 = +document.getElementById("s2").value || 0;
+    const name = document.getElementById("userName").value.trim();
+
+    if (!name || !dt) { alert("请填写完整信息！"); return; }
+    const st = toSec(h1,m1,s1);
+    const et = toSec(h2,m2,s2);
+    if (st >= et) { alert("开始时间不能大于结束时间！"); return; }
+
+    const key = timeStr(h1,m1,s1) + "-" + timeStr(h2,m2,s2);
+    if (!bookingData[currentDevice][dt]) bookingData[currentDevice][dt] = {};
+    bookingData[currentDevice][dt][key] = name;
+
+    document.getElementById("userName").value = "";
+    refreshAll();
+}
+
+// 刷新全部三个区域
+function refreshAll() {
+    if (!currentDevice) return;
+    const dt = document.getElementById("selDate").value;
+    const data = bookingData[currentDevice][dt] || {};
+    
+    // === 1. 刷新时间条 ===
+    const bar = document.getElementById("timeBar");
+    bar.innerHTML = "";
+
+    // === 2. 刷新当天预约列表 ===
+    const list = document.getElementById("recordList");
+    list.innerHTML = "";
+
+    for (let k in data) {
+        const [a, b] = k.split("-");
+        const as = toSec(...a.split(":"));
+        const es = toSec(...b.split(":"));
+        const dur = secToHMS(es - as);
+
+        // 时间条
+        const block = document.createElement("div");
+        block.className = "book-block";
+        block.style.left = (as / 86400 * 100) + "%";
+        block.style.width = ((es - as) / 86400 * 100) + "%";
+        block.innerText = k + " | " + data[k];
+        bar.appendChild(block);
+
+        // 预约记录
+        const item = document.createElement("div");
+        item.className = "item";
+        item.innerText = `${dt} | ${k} | ${data[k]} | 时长：${dur}`;
+        list.appendChild(item);
+    }
+
+    // === 3. 刷新统计 ===
+    refreshStats();
+}
+
+// 统计总时长
+function refreshStats() {
+    if (!currentDevice) return;
+    const data = bookingData[currentDevice];
+    const userMap = {};
+    let totalAll = 0;
+    const res = document.getElementById("statResult");
+    res.innerHTML = "";
+
+    for (let dt in data) {
+        for (let k in data[dt]) {
+            const name = data[dt][k];
+            const [a, b] = k.split("-");
+            const diff = toSec(...b.split(":")) - toSec(...a.split(":"));
+            userMap[name] = (userMap[name] || 0) + diff;
+            totalAll += diff;
+        }
+    }
+
+    for (let u in userMap) {
+        const div = document.createElement("div");
+        div.className = "stat-item";
+        div.innerText = `${u}：总预约时长 → ${secToHMS(userMap[u])}`;
+        res.appendChild(div);
+    }
+
+    const totalDiv = document.createElement("div");
+    totalDiv.className = "stat-item";
+    totalDiv.style.fontWeight = "bold";
+    totalDiv.innerText = `📌 全部合计总时长：${secToHMS(totalAll)}`;
+    res.appendChild(totalDiv);
+}
+</script>
+</body>
+</html>
