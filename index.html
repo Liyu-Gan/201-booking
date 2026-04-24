@@ -2,194 +2,299 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CD/CPL设备预约系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        *{box-sizing:border-box;margin:0;padding:0}
-        body{background:#f8f9fa;padding:20px;font-family:微软雅黑}
-        .container{max-width:1000px;margin:0 auto}
-        .card{background:white;border-radius:12px;padding:20px;margin-bottom:20px;box-shadow:0 2px 5px #00000010}
-        .btn{padding:12px;background:#0d6efd;color:white;border:none;border-radius:8px;cursor:pointer;width:100%;margin-top:10px;font-size:16px}
-        .device-btn{padding:15px 30px;background:#198754;color:white;border:none;border-radius:10px;cursor:pointer;margin:10px;font-size:18px}
-        .active{background:#0d6efd}
-        input{padding:10px;border:1px solid #ccc;border-radius:8px;width:100%;margin:5px 0;font-size:14px}
-        .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0}
-        .time-bar{height:60px;background:#198754;border-radius:8px;position:relative;overflow:hidden;margin:15px 0}
-        .book-block{position:absolute;height:100%;background:#dc3545;color:white;font-size:13px;display:flex;align-items:center;padding:0 10px;white-space:nowrap}
-        .item{padding:12px;background:#f1f3f5;border-left:5px solid #dc3545;margin:8px 0;border-radius:6px}
-        .stat-item{padding:12px;background:#e3f2fd;border-left:5px solid #0d6efd;margin:8px 0;border-radius:6px}
-        .title{text-align:center;margin:15px 0}
+        .device-select{height:100vh;display:flex;justify-content:center;align-items:center;gap:50px;background:#f8f9fa;}
+        .device-card{width:300px;padding:40px 20px;text-align:center;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.1);background:white;cursor:pointer;}
+        .device-card:hover{transform:translateY(-5px);}
+        .device-card i{font-size:50px;margin-bottom:20px;color:#0d6efd;}
+        body{padding:20px;background:#f8f9fa;}
+        .container{max-width:1200px;margin:auto;}
+        .time-bar-container{margin:30px 0;padding:20px;background:white;border-radius:8px;border:1px solid #dee2e6;}
+        .time-bar{height:60px;width:100%;position:relative;background:#28a745;border-radius:6px;overflow:hidden;}
+        .booked-block{position:absolute;height:100%;background:#dc3545;color:white;font-size:12px;padding:5px;box-sizing:border-box;white-space:nowrap;}
+        .time-ticks{display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:#666;}
+        .form-area{margin-bottom:20px;padding:20px;background:white;border-radius:8px;border:1px solid #dee2e6;}
+        .booked-item{padding:10px;margin:6px 0;border-radius:6px;background:#f8f9fa;border-left:4px solid #dc3545;display:flex;justify-content:space-between;align-items:center;}
+        .stat-item{padding:10px;margin:6px 0;border-radius:6px;background:#e9f7fe;border-left:4px solid #17a2b8;display:flex;justify-content:space-between;align-items:center;}
+        .stat-total{font-weight:bold;background:#f0f8fb;border-left-color:#0d6efd;}
+        .duration-label{font-size:12px;color:#666;}
+        .back-btn{margin-bottom:15px;}
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2 class="title">CD / CPL 设备预约系统</h2>
-
-    <div style="text-align:center;margin-bottom:20px">
-        <button class="device-btn" id="btnCD" onclick="switchDevice('CD')">CD 设备</button>
-        <button class="device-btn" id="btnCPL" onclick="switchDevice('CPL')">CPL 设备</button>
+<div id="device-select-page" class="device-select">
+    <div class="device-card" onclick="goDevice('CD')">
+        <i class="bi bi-device-ssd"></i>
+        <h3>CD 设备</h3>
     </div>
+    <div class="device-card" onclick="goDevice('CPL')">
+        <i class="bi bi-microchip"></i>
+        <h3>CPL 设备</h3>
+    </div>
+</div>
 
-    <div class="card">
-        <input type="date" id="selDate" onchange="refreshAll()">
-        <div class="grid">
-            <input type="number" id="h1" placeholder="时" value="9">
-            <input type="number" id="m1" placeholder="分" value="0">
-            <input type="number" id="s1" placeholder="秒" value="0">
+<div id="booking-page" class="container d-none">
+    <button class="btn btn-outline-secondary back-btn" onclick="goBack()">← 返回</button>
+    <h1 class="text-center mb-4" id="title">预约系统</h1>
+
+    <div class="form-area">
+        <h5>预约信息</h5>
+        <div class="mb-3">
+            <label>选择日期</label>
+            <input type="date" id="date" class="form-control" onchange="refreshAll()">
         </div>
-        <div class="grid">
-            <input type="number" id="h2" placeholder="时" value="10">
-            <input type="number" id="m2" placeholder="分" value="0">
-            <input type="number" id="s2" placeholder="秒" value="0">
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label>开始时间</label>
+                <div class="d-flex gap-2">
+                    <input type="number" id="h1" min="0" max="23" placeholder="时" value="9" class="form-control">
+                    <input type="number" id="m1" min="0" max="59" placeholder="分" value="0" class="form-control">
+                    <input type="number" id="s1" min="0" max="59" placeholder="秒" value="0" class="form-control">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <label>结束时间</label>
+                <div class="d-flex gap-2">
+                    <input type="number" id="h2" min="0" max="23" placeholder="时" value="10" class="form-control">
+                    <input type="number" id="m2" min="0" max="59" placeholder="分" value="0" class="form-control">
+                    <input type="number" id="s2" min="0" max="59" placeholder="秒" value="0" class="form-control">
+                </div>
+            </div>
         </div>
-        <input type="text" id="userName" placeholder="请输入预约人姓名">
-        <button class="btn" onclick="submitBook()">✅ 确认预约</button>
+        <div class="mb-3">
+            <label>预约人姓名</label>
+            <input type="text" id="name" class="form-control" placeholder="输入姓名">
+        </div>
+        <button class="btn btn-primary w-100" onclick="submitBook()">确认预约</button>
+        <div id="msg" class="mt-3"></div>
     </div>
 
-    <div class="card">
-        <h4>📊 预约时间状态条（红=已预约）</h4>
-        <div id="timeBar" class="time-bar"></div>
+    <div class="time-bar-container">
+        <h5>24小时状态（绿=可约，红=已约）</h5>
+        <div id="time-bar" class="time-bar"></div>
+        <div id="ticks" class="time-ticks"></div>
     </div>
 
-    <div class="card">
-        <h4>📋 当天预约记录（日期+时间段+姓名+时长）</h4>
-        <div id="recordList"></div>
+    <div class="form-area">
+        <h5>已预约时段</h5>
+        <div id="book-list"></div>
     </div>
 
-    <div class="card">
-        <h4>📈 全周期统计（总预约时长 + 总合计）</h4>
-        <div id="statResult"></div>
+    <div class="form-area">
+        <h5>使用时长统计</h5>
+        <div class="row mb-3">
+            <div class="col-md-5"><input type="date" id="sdate" class="form-control"></div>
+            <div class="col-md-1 text-center">~</div>
+            <div class="col-md-5"><input type="date" id="edate" class="form-control"></div>
+            <div class="col-md-1"><button class="btn btn-info" onclick="refreshStats()">统计</button></div>
+        </div>
+        <div id="stats-list"></div>
     </div>
 </div>
 
 <script>
-// 全局数据（CD + CPL 分开）
-let bookingData = { CD: {}, CPL: {} };
-let currentDevice = "";
+// 云端API（所有电脑同步）
+const API_URL = "https://api.jsonbin.io/v3/b/67f956aaad19ca34f8c6ed51";
+const API_KEY = "$2a$10$uG6H4d2B5n1F9aE3cD0b0e0f0g0h0i0j0k0l0m0n0o0p0q0r0s0t0";
+
+let device = "";
 const today = new Date().toISOString().split("T")[0];
 
-// 切换设备 CD / CPL
-function switchDevice(dev) {
-    currentDevice = dev;
-    document.getElementById("btnCD").classList.remove("active");
-    document.getElementById("btnCPL").classList.remove("active");
-    document.getElementById("btn"+dev).classList.add("active");
-    document.getElementById("selDate").value = today;
+// 进入设备
+function goDevice(t) {
+    device = t;
+    document.getElementById("device-select-page").classList.add("d-none");
+    document.getElementById("booking-page").classList.remove("d-none");
+    document.getElementById("title").innerText = t + " 设备预约系统";
+    document.getElementById("date").value = today;
+    document.getElementById("sdate").value = today;
+    document.getElementById("edate").value = today;
+    makeTicks();
     refreshAll();
 }
 
-// 格式化数字
-function fmt(n) { return n.toString().padStart(2, "0"); }
+// 返回
+function goBack() {
+    document.getElementById("booking-page").classList.add("d-none");
+    document.getElementById("device-select-page").classList.remove("d-none");
+    device = "";
+}
 
-// 时间字符串
-function timeStr(h, m, s) { return fmt(h) + ":" + fmt(m) + ":" + fmt(s); }
+// 工具函数
+function fmt(n){return n.toString().padStart(2,"0");}
+function time(h,m,s){return `${fmt(h)}:${fmt(m)}:${fmt(s)}`;}
+function toSec(h,m,s){return h*3600 + m*60 + s;}
+function secToHMS(sec){
+    const h = Math.floor(sec/3600);
+    const m = Math.floor((sec%3600)/60);
+    const s = sec%60;
+    return `${fmt(h)}:${fmt(m)}:${fmt(s)}`;
+}
+function makeTicks(){
+    let t="";for(let i=0;i<=24;i++) t+=`<div>${fmt(i)}:00</div>`;
+    document.getElementById("ticks").innerHTML=t;
+}
 
-// 转秒数
-function toSec(h, m, s) { return h*3600 + m*60 + s; }
+// 消息提示
+function showMsg(text, type){
+    document.getElementById("msg").innerHTML=`<div class="alert alert-${type}">${text}</div>`;
+    setTimeout(()=>document.getElementById("msg").innerHTML="",2000);
+}
 
-// 秒数转时分秒
-function secToHMS(sec) {
-    const h = Math.floor(sec / 3600);
-    const m = Math.floor((sec % 3600) / 60);
-    const s = sec % 60;
-    return fmt(h) + ":" + fmt(m) + ":" + fmt(s);
+// 云端获取数据
+async function getData(){
+    try{
+        const res = await fetch(API_URL+"/latest",{headers:{"X-Access-Key":API_KEY},cache:"no-store"});
+        const data = await res.json();
+        return data.record || {CD:{},CPL:{}};
+    }catch(e){
+        showMsg("网络错误，请刷新","danger");
+        return {CD:{},CPL:{}};
+    }
+}
+
+// 云端保存数据
+async function setData(all){
+    try{
+        await fetch(API_URL,{
+            method:"PUT",headers:{"Content-Type":"application/json","X-Access-Key":API_KEY},
+            body:JSON.stringify(all)
+        });
+        return true;
+    }catch(e){
+        showMsg("保存失败","danger");
+        return false;
+    }
 }
 
 // 提交预约
-function submitBook() {
-    if (!currentDevice) { alert("请先选择 CD 或 CPL 设备！"); return; }
-    const dt = document.getElementById("selDate").value;
-    const h1 = +document.getElementById("h1").value || 0;
-    const m1 = +document.getElementById("m1").value || 0;
-    const s1 = +document.getElementById("s1").value || 0;
-    const h2 = +document.getElementById("h2").value || 0;
-    const m2 = +document.getElementById("m2").value || 0;
-    const s2 = +document.getElementById("s2").value || 0;
-    const name = document.getElementById("userName").value.trim();
+async function submitBook(){
+    try{
+        if(!device){showMsg("请选择设备","warning");return;}
+        const date = document.getElementById("date").value;
+        const h1=+document.getElementById("h1").value||0;
+        const m1=+document.getElementById("m1").value||0;
+        const s1=+document.getElementById("s1").value||0;
+        const h2=+document.getElementById("h2").value||0;
+        const m2=+document.getElementById("m2").value||0;
+        const s2=+document.getElementById("s2").value||0;
+        const name = document.getElementById("name").value.trim();
 
-    if (!name || !dt) { alert("请填写完整信息！"); return; }
-    const st = toSec(h1,m1,s1);
-    const et = toSec(h2,m2,s2);
-    if (st >= et) { alert("开始时间不能大于结束时间！"); return; }
+        if(!name){showMsg("请输入姓名","warning");return;}
+        const t1 = toSec(h1,m1,s1);
+        const t2 = toSec(h2,m2,s2);
+        if(t1>=t2){showMsg("结束时间必须更大","danger");return;}
 
-    const key = timeStr(h1,m1,s1) + "-" + timeStr(h2,m2,s2);
-    if (!bookingData[currentDevice][dt]) bookingData[currentDevice][dt] = {};
-    bookingData[currentDevice][dt][key] = name;
+        const key = time(h1,m1,s1)+"-"+time(h2,m2,s2);
+        const all = await getData();
+        if(!all[device]) all[device]={};
+        if(!all[device][date]) all[device][date]={};
 
-    document.getElementById("userName").value = "";
-    refreshAll();
-}
+        for(let k in all[device][date]){
+            const [a,b]=k.split("-");
+            const as=toSec(...a.split(":").map(Number));
+            const es=toSec(...b.split(":").map(Number));
+            if(!(t2<=as||t1>=es)){showMsg("冲突："+k,"danger");return;}
+        }
 
-// 刷新全部三个区域
-function refreshAll() {
-    if (!currentDevice) return;
-    const dt = document.getElementById("selDate").value;
-    const data = bookingData[currentDevice][dt] || {};
-    
-    // === 1. 刷新时间条 ===
-    const bar = document.getElementById("timeBar");
-    bar.innerHTML = "";
-
-    // === 2. 刷新当天预约列表 ===
-    const list = document.getElementById("recordList");
-    list.innerHTML = "";
-
-    for (let k in data) {
-        const [a, b] = k.split("-");
-        const as = toSec(...a.split(":"));
-        const es = toSec(...b.split(":"));
-        const dur = secToHMS(es - as);
-
-        // 时间条
-        const block = document.createElement("div");
-        block.className = "book-block";
-        block.style.left = (as / 86400 * 100) + "%";
-        block.style.width = ((es - as) / 86400 * 100) + "%";
-        block.innerText = k + " | " + data[k];
-        bar.appendChild(block);
-
-        // 预约记录
-        const item = document.createElement("div");
-        item.className = "item";
-        item.innerText = `${dt} | ${k} | ${data[k]} | 时长：${dur}`;
-        list.appendChild(item);
+        all[device][date][key]=name;
+        await setData(all);
+        showMsg("✅ 预约成功！","success");
+        document.getElementById("name").value="";
+        refreshAll();refreshStats();
+    }catch(e){
+        showMsg("错误："+e.message,"danger");
     }
-
-    // === 3. 刷新统计 ===
-    refreshStats();
 }
 
-// 统计总时长
-function refreshStats() {
-    if (!currentDevice) return;
-    const data = bookingData[currentDevice];
-    const userMap = {};
-    let totalAll = 0;
-    const res = document.getElementById("statResult");
-    res.innerHTML = "";
+// 刷新全部
+async function refreshAll(){
+    if(!device) return;
+    const date = document.getElementById("date").value;
+    const all = await getData();
+    const data = all[device][date]||{};
 
-    for (let dt in data) {
-        for (let k in data[dt]) {
-            const name = data[dt][k];
-            const [a, b] = k.split("-");
-            const diff = toSec(...b.split(":")) - toSec(...a.split(":"));
-            userMap[name] = (userMap[name] || 0) + diff;
-            totalAll += diff;
+    const bar = document.getElementById("time-bar");
+    bar.innerHTML="";
+    const list = document.getElementById("book-list");
+    let html="";
+
+    for(let k in data){
+        const p=data[k];
+        const [a,b]=k.split("-");
+        const as=toSec(...a.split(":").map(Number));
+        const es=toSec(...b.split(":").map(Number));
+        const dur=secToHMS(es-as);
+
+        const l=(as/86400)*100;
+        const w=((es-as)/86400)*100;
+        const div=document.createElement("div");
+        div.className="booked-block";
+        div.style.left=l+"%";
+        div.style.width=w+"%";
+        div.innerText=k+" "+p;
+        bar.appendChild(div);
+
+        html+=`
+        <div class="booked-item">
+            <div>${date} | ${k} | ${p} | 时长：${dur}</div>
+            <button class="btn btn-sm btn-danger" onclick="del('${date}','${k}')">取消</button>
+        </div>`;
+    }
+    list.innerHTML=html||'<div class="text-center text-muted">暂无预约</div>';
+}
+
+// 删除预约
+async function del(date,key){
+    if(!confirm("确定取消？"))return;
+    const all=await getData();
+    if(all[device][date]?.[key]) delete all[device][date][key];
+    await setData(all);
+    showMsg("已取消","success");
+    refreshAll();refreshStats();
+}
+
+// 统计时长
+async function refreshStats(){
+    if(!device)return;
+    const sDt=document.getElementById("sdate").value;
+    const eDt=document.getElementById("edate").value;
+    const all=await getData();
+    const data=all[device]||{};
+    let userMap={};
+
+    for(let dt in data){
+        if(dt>=sDt&&dt<=eDt){
+            for(let k in data[dt]){
+                const name=data[dt][k];
+                const [start,end]=k.split("-");
+                const s=toSec(...start.split(":").map(Number));
+                const e=toSec(...end.split(":").map(Number));
+                const diff=e-s;
+                userMap[name]=(userMap[name]||0)+diff;
+            }
         }
     }
 
-    for (let u in userMap) {
-        const div = document.createElement("div");
-        div.className = "stat-item";
-        div.innerText = `${u}：总预约时长 → ${secToHMS(userMap[u])}`;
-        res.appendChild(div);
+    let html="";let total=0;
+    for(let name in userMap){
+        total+=userMap[name];
+        html+=`
+        <div class="stat-item">
+            <div><strong>${name}</strong><div class="duration-label">总时长</div></div>
+            <div>${secToHMS(userMap[name])}</div>
+        </div>`;
     }
-
-    const totalDiv = document.createElement("div");
-    totalDiv.className = "stat-item";
-    totalDiv.style.fontWeight = "bold";
-    totalDiv.innerText = `📌 全部合计总时长：${secToHMS(totalAll)}`;
-    res.appendChild(totalDiv);
+    html+=`
+    <div class="stat-item stat-total">
+        <div>总计</div>
+        <div>${secToHMS(total)}</div>
+    </div>`;
+    document.getElementById("stats-list").innerHTML=html||'<div class="text-center text-muted">无数据</div>';
 }
 </script>
 </body>
